@@ -21,4 +21,4 @@ ollama pull llama3
 ollama pull nomic-embed-text
 
 ### 3. Start app
-streamlit run app.py
+streamlit run main.py
