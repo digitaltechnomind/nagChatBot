@@ -1,0 +1,77 @@
+TEST_QUESTIONS = [
+    # 1. Basic retrieval
+    "What is the main topic discussed in the document?",
+
+    # 2. Definition extraction
+    "Explain the concept of vector embeddings mentioned in the PDF.",
+
+    # 3. Multi-chunk reasoning
+    "How does the system process data from ingestion to retrieval?",
+
+    # 4. Follow-up (context dependency)
+    "Can you simplify that explanation in 2 lines?",
+
+    # 5. Entity extraction
+    "What tools or technologies are referenced in the document?",
+
+    # 6. Rephrased query
+    "Which frameworks or libraries are used?",
+
+    # 7. Memory-based question
+    "What did I ask in my first question?",
+
+    # 8. Sliding window validation
+    "Summarize our conversation so far.",
+
+    # 9. Out-of-context question
+    "What is the capital of France?",
+
+    # 10. Deep reasoning / summarization
+    "Provide a detailed summary of the PDF content."
+]
+
+def run_chatbot_tests():
+    print("Starting Chatbot Test Suite...\n")
+
+    results = []
+
+    for i, question in enumerate(TEST_QUESTIONS, 1):
+        print(f"\nTest Case {i}: {question}")
+
+        embeddings = OllamaEmbeddings(model="nomic-embed-text")
+
+        db = FAISS.load_local(
+            "faiss_pdfindex",
+            embeddings,
+            allow_dangerous_deserialization=True
+        )
+
+        docs = db.similarity_search(question)
+        context = "\n\n".join([doc.page_content for doc in docs])
+
+        chat_history = st.session_state.chat_history[-4:]
+        formatted_history = format_chat_history(chat_history)
+
+        chain = get_conversational_chain()
+
+        response = chain.invoke({
+            "context": context,
+            "question": question,
+            "chat_history": formatted_history
+        })
+
+        # Store result
+        results.append({
+            "question": question,
+            "response": response
+        })
+
+        # Update memory
+        st.session_state.chat_history.append((question, response))
+        if len(st.session_state.chat_history) > 4:
+            st.session_state.chat_history = st.session_state.chat_history[-4:]
+
+        print(f"Response: {response}")
+
+    print("\nTest Suite Completed.")
+    return results
